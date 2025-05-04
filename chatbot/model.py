@@ -2,7 +2,6 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from base import Base
-
 from sqlalchemy.sql import func
 
 class Diary(Base):
@@ -12,13 +11,12 @@ class Diary(Base):
     title = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
     empathy_response = Column(Text)
+    feedback = Column(Text)  # ← 추가
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=func.now())
-
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
     user = relationship("User", back_populates="diaries")
-
-
 
 class User(Base):
     __tablename__ = "users"

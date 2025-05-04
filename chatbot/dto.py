@@ -1,23 +1,23 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class DiaryCreate(BaseModel):
     title: str
     content: str
-    character: Optional[str] = "angry_friend"  
-    user_id: int
+    intensity: Optional[str] = "medium"
 
 class DiaryUpdate(BaseModel):
     title: Optional[str]
     content: Optional[str]
-    character: Optional[str] 
+    intensity: Optional[str]
 
 class DiaryOut(BaseModel):
     id: int
     title: str
     content: str
     empathy_response: str
+    feedback: Optional[str]
     user_id: int
     created_at: datetime
     updated_at: datetime

@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from base import SessionLocal
-from model import Diary
+from model import Diary, Calendar
 from ai import get_empathy_response
 from dto import DiaryCreate, DiaryOut, DiaryUpdate
 from security import get_current_user
 from model import User
+from datetime import date
+from routers.calendar import update_or_create_calendar
 
 router = APIRouter()
 
@@ -16,9 +18,11 @@ def get_db():
     finally:
         db.close()
 
+
 @router.post("/diaries/", response_model=DiaryOut)
 def create_diary(diary: DiaryCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     empathy = get_empathy_response(diary.content, intensity=diary.intensity)
+    
     db_diary = Diary(
         title=diary.title,
         content=diary.content,
@@ -29,6 +33,9 @@ def create_diary(diary: DiaryCreate, db: Session = Depends(get_db), current_user
     db.add(db_diary)
     db.commit()
     db.refresh(db_diary)
+
+    update_or_create_calendar(db, current_user.id, db_diary.created_at.date(), empathy["emotion"])
+
     return db_diary
 
 @router.put("/diaries/{diary_id}", response_model=DiaryOut)
@@ -47,6 +54,9 @@ def update_diary(diary_id: int, diary_update: DiaryUpdate, db: Session = Depends
 
     db.commit()
     db.refresh(diary)
+
+    update_or_create_calendar(db, current_user.id, diary.updated_at.date(), empathy["emotion"])
+
     return diary
 
 @router.get("/diaries/", response_model=list[DiaryOut])

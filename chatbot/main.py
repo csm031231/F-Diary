@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import routers
 from routers import user
+from routers import calendar
 
 app = FastAPI(title="Diary API")
 
@@ -16,6 +17,7 @@ app.add_middleware(
 
 app.include_router(routers.router, prefix="/api", tags=["diaries"])
 app.include_router(user.router, prefix="/api", tags=["user"])
+app.include_router(calendar.router, prefix="/api", tags=["calendar"])
 
 if __name__ == "__main__":
     import uvicorn

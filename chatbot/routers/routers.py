@@ -21,6 +21,16 @@ def get_db():
 
 @router.post("/diaries/", response_model=DiaryOut)
 def create_diary(diary: DiaryCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    today = date.today()
+    
+    existing_diary = db.query(Diary).filter(
+        Diary.user_id == current_user.id,
+        Diary.created_at >= today
+    ).first()
+
+    if existing_diary:
+        raise HTTPException(status_code=400, detail="오늘은 이미 일기를 작성하셨습니다.")
+
     empathy = get_empathy_response(diary.content, intensity=diary.intensity)
     
     db_diary = Diary(
@@ -38,7 +48,7 @@ def create_diary(diary: DiaryCreate, db: Session = Depends(get_db), current_user
 
     return db_diary
 
-@router.put("/diaries/{diary_id}", response_model=DiaryOut)
+@router.put("/diaries/{diary_id}/change", response_model=DiaryOut)
 def update_diary(diary_id: int, diary_update: DiaryUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     diary = db.query(Diary).filter(Diary.id == diary_id, Diary.user_id == current_user.id).first()
     if not diary:
@@ -59,18 +69,18 @@ def update_diary(diary_id: int, diary_update: DiaryUpdate, db: Session = Depends
 
     return diary
 
-@router.get("/diaries/", response_model=list[DiaryOut])
+@router.get("/diaries/read", response_model=list[DiaryOut])
 def read_diaries(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(Diary).filter(Diary.user_id == current_user.id).all()
 
-@router.get("/diaries/{diary_id}", response_model=DiaryOut)
+@router.get("/diaries/{diary_id}/read_Diary", response_model=DiaryOut)
 def read_diary(diary_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     diary = db.query(Diary).filter(Diary.id == diary_id, Diary.user_id == current_user.id).first()
     if not diary:
         raise HTTPException(status_code=404, detail="일기를 찾을 수 없습니다.")
     return diary
 
-@router.delete("/diaries/{diary_id}", response_model=DiaryOut)
+@router.delete("/diaries/{diary_id}/del", response_model=DiaryOut)
 def delete_diary(diary_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     diary = db.query(Diary).filter(Diary.id == diary_id, Diary.user_id == current_user.id).first()
     if not diary:

@@ -58,14 +58,13 @@ def update_user(user_data: UpdateUserDTO, db: Session = Depends(get_db), current
     except Exception as e:
         db.rollback()
         return {"error": f"Error updating user: {str(e)}"}
-
-
-@router.get("/{username}/profile")
-def get_user_profile(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    
+@router.get("/profile")
+def get_user_profile(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     try:
-        user = db.query(User).filter(User.username == current_user).first()
+        user = db.query(User).filter(User.username == current_user.username).first()
         if not user:
-            return {"error": f"User {current_user} not found"}
+            return {"error": f"User {current_user.username} not found"}
         return {
             "username": user.username,
             "nickname": user.nickname,
@@ -74,7 +73,6 @@ def get_user_profile(db: Session = Depends(get_db), current_user: str = Depends(
         }
     except Exception as e:
         return {"error": str(e)}
-
 
 @router.post("/login")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),db: Session = Depends(get_db)):

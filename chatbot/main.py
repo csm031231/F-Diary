@@ -6,7 +6,6 @@ from routers import calendar
 
 app = FastAPI(title="Diary API")
 
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],            

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Diary Emotion - 감정 달력</title>
+    
+    <!-- 손글씨 폰트 추가 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+      /* 손글씨 폰트 기본 설정 */
+      .font-gaegu {
+        font-family: 'Gaegu', cursive, sans-serif;
+      }
+      
+      /* 손으로 그린 듯한 선과 배경 */
+      .hand-drawn-border {
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .hand-drawn-border::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        background-image: url("data:image/svg+xml,%3Csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' fill='none' stroke='%23333333' stroke-width='1' stroke-dasharray='4, 8' stroke-dashoffset='0' stroke-linecap='round'/%3E%3C/svg%3E");
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

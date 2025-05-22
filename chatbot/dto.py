@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional, List
 from datetime import datetime
 
@@ -27,10 +27,10 @@ class DiaryOut(BaseModel):
 
 class AddUserDTO(BaseModel):
     username: str
-    nickname: str
+    email: EmailStr  # 여기 추가
     password: str
 
 class UpdateUserDTO(BaseModel):
     username: Optional[str] = None
-    nickname: Optional[str] = None
+    email: Optional[EmailStr] = None  # 여기 추가
     password: Optional[str] = None

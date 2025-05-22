@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { diaryAPI } from '../api/api';
-
 const NotebookEntryForm = ({ onSave, onCancel, user }) => {
   const [newEntry, setNewEntry] = useState({
     title: '',

@@ -1,5 +1,3 @@
-// src/api/api.jsx에 감정 분석 API 호출 추가
-
 import axios from "axios";
 
 // Create axios instance with base URL
@@ -31,7 +29,7 @@ export const diaryAPI = {
   getAllEntries: () => api.get('/diaries/read'),
   getEntryById: (id) => api.get(`/diaries/${id}/read_Diary`),
   deleteEntry: (id) => api.delete(`/diaries/${id}/del`),
-  // 새로운 AI 감정 분석 API 추가
+  // 감정 분석 API
   analyzeEmotion: (content) => api.post('/analyze_emotion', { content }),
 };
 
@@ -41,7 +39,19 @@ export const userAPI = {
   deleteUser: (username) => api.delete(`/user/${username}/del`),
   updateUser: (username, userData) => api.put(`/user/${username}/change`, userData),
   getUserProfile: () => api.get('/user/profile'),
-  login: (credentials) => api.post('/user/login', credentials),
+
+  // ✅ 로그인 - OAuth2PasswordRequestForm 사용에 맞춰 FormData로 전송
+  login: (credentials) => {
+    const formData = new FormData();
+    formData.append('username', credentials.username || credentials.email);
+    formData.append('password', credentials.password);
+
+    return axios.post('http://localhost:8000/api/user/login', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }
+    });
+  },
 };
 
 // API for calendar

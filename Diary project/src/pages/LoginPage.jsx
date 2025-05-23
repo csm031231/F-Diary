@@ -13,7 +13,14 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 이미 로그인된 경우 메인페이지로 리다이렉트
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/', { replace: true });
+      return;
+    }
+    
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
     }
@@ -23,7 +30,7 @@ const LoginPage = () => {
         email: location.state.registeredEmail
       }));
     }
-  }, [location]);
+  }, [location, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,25 +47,56 @@ const LoginPage = () => {
     setSuccessMessage('');
 
     try {
-      // FormData를 사용해 application/x-www-form-urlencoded 전송
-      const formData = new FormData();
-      formData.append('username', credentials.email);
-      formData.append('password', credentials.password);
+      console.log('로그인 시도:', credentials.email);
+      
+      // userAPI.login에서 FormData 생성하므로 credentials 객체를 그대로 전달
+      const response = await userAPI.login({
+        username: credentials.email,  // 백엔드에서 username 필드를 사용
+        password: credentials.password
+      });
 
-      const response = await userAPI.login(formData);
+      console.log('로그인 응답:', response.data);
 
       const { access_token, token_type } = response.data;
+      
+      // 토큰을 localStorage에 저장
       localStorage.setItem('token', access_token);
       localStorage.setItem('token_type', token_type);
-      console.log('navigate 호출!');
-      navigate('/');
+      
+      // 사용자 정보도 함께 저장 (선택적)
+      try {
+        const userResponse = await userAPI.getUserProfile();
+        localStorage.setItem('user', JSON.stringify({
+          id: userResponse.data.id || 1, // 백엔드에서 id를 제공하지 않는 경우 임시값
+          name: userResponse.data.nickname || userResponse.data.username,
+          email: credentials.email
+        }));
+      } catch (profileError) {
+        // 프로필 가져오기 실패 시에도 기본 정보로 저장
+        localStorage.setItem('user', JSON.stringify({
+          id: 1,
+          name: credentials.email.split('@')[0], // 이메일의 @ 앞부분을 이름으로 사용
+          email: credentials.email
+        }));
+      }
+
+      console.log('토큰 저장 완료, 메인페이지로 이동');
+      
+      // replace: true로 뒤로가기 방지
+      navigate('/', { replace: true });
 
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('로그인 실패:', error);
       let errorMessage = '로그인에 실패했습니다. 다시 시도해주세요.';
-      if (error.response && error.response.data) {
-        errorMessage = error.response.data.detail || errorMessage;
+      
+      if (error.response?.status === 401) {
+        errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
       setError(errorMessage);
     } finally {
       setIsLoading(false);

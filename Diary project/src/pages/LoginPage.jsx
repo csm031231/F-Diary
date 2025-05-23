@@ -34,37 +34,36 @@ const LoginPage = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  setError('');
-  setSuccessMessage('');
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccessMessage('');
 
-  try {
-    // 여기 이건 지우고
-    // const formData = new FormData();
-    // formData.append('username', credentials.email);
-    // formData.append('password', credentials.password);
+    try {
+      // FormData를 사용해 application/x-www-form-urlencoded 전송
+      const formData = new FormData();
+      formData.append('username', credentials.email);
+      formData.append('password', credentials.password);
 
-    // ✅ 그냥 credentials 그대로 넘김
-    const response = await userAPI.login(credentials);
+      const response = await userAPI.login(formData);
 
-    const { access_token, token_type } = response.data;
-    localStorage.setItem('token', access_token);
-    localStorage.setItem('token_type', token_type);
+      const { access_token, token_type } = response.data;
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('token_type', token_type);
+      console.log('navigate 호출!');
+      navigate('/');
 
-    navigate('/');
-  } catch (error) {
-    console.error('Login failed:', error);
-    let errorMessage = '로그인에 실패했습니다. 다시 시도해주세요.';
-    if (error.response && error.response.data) {
-      errorMessage = error.response.data.detail || errorMessage;
+    } catch (error) {
+      console.error('Login failed:', error);
+      let errorMessage = '로그인에 실패했습니다. 다시 시도해주세요.';
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.detail || errorMessage;
+      }
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
-    setError(errorMessage);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4">

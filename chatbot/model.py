@@ -11,6 +11,7 @@ class Diary(Base):
     title = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
     empathy_response = Column(Text)
+    emotion_tag = Column(String)
     feedback = Column(Text)  # 건설적인 피드백
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=func.now())

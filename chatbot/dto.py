@@ -18,6 +18,7 @@ class DiaryOut(BaseModel):
     content: str
     empathy_response: str
     feedback: Optional[str]
+    emotion_tag: Optional[str]  # ✅ 감정 태그 필드 추가
     user_id: int
     created_at: datetime
     updated_at: datetime
@@ -27,10 +28,10 @@ class DiaryOut(BaseModel):
 
 class AddUserDTO(BaseModel):
     username: str
-    email: EmailStr  # 여기 추가
+    email: EmailStr
     password: str
 
 class UpdateUserDTO(BaseModel):
     username: Optional[str] = None
-    email: Optional[EmailStr] = None  # 여기 추가
+    email: Optional[EmailStr] = None
     password: Optional[str] = None

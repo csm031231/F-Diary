@@ -4,7 +4,7 @@ from datetime import date
 
 from model import Calendar, User
 from base import get_db
-from security import get_current_user  
+from security import get_current_user_by_email  
 
 router = APIRouter()
 
@@ -32,7 +32,7 @@ def read_calendar(
     year: int = Query(..., ge=1),
     month: int = Query(..., ge=1, le=12),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user_by_email)
 ):
     start_date = date(year, month, 1)
     end_date = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)

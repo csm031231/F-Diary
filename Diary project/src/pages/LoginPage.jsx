@@ -17,10 +17,12 @@ const LoginPage = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
+      console.log('이미 로그인됨, 메인페이지로 이동');
       navigate('/', { replace: true });
       return;
     }
     
+    // 회원가입 후 리다이렉트된 경우 성공 메시지 표시
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
     }
@@ -38,6 +40,11 @@ const LoginPage = () => {
       ...credentials,
       [name]: value
     });
+    
+    // 입력 시 에러 메시지 초기화
+    if (error) {
+      setError('');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -46,51 +53,104 @@ const LoginPage = () => {
     setError('');
     setSuccessMessage('');
 
+    // 폼 유효성 검사
+    if (!credentials.email || !credentials.password) {
+      setError('이메일과 비밀번호를 모두 입력해주세요.');
+      setIsLoading(false);
+      return;
+    }
+
+    // 이메일 형식 검사
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(credentials.email)) {
+      setError('올바른 이메일 형식을 입력해주세요.');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      console.log('로그인 시도:', credentials.email);
+      console.log('🚀 로그인 시도 시작:', {
+        email: credentials.email,
+        passwordLength: credentials.password.length
+      });
       
-      // userAPI.login에서 FormData 생성하므로 credentials 객체를 그대로 전달
+      // userAPI.login 호출
       const response = await userAPI.login({
-        username: credentials.email,  // 백엔드에서 username 필드를 사용
+        email: credentials.email,
         password: credentials.password
       });
 
-      console.log('로그인 응답:', response.data);
+      console.log('✅ 로그인 응답 성공:', {
+        access_token: response.data.access_token ? '토큰 받음' : '토큰 없음',
+        token_type: response.data.token_type
+      });
 
       const { access_token, token_type } = response.data;
       
+      if (!access_token) {
+        throw new Error('서버에서 토큰을 반환하지 않았습니다.');
+      }
+      
       // 토큰을 localStorage에 저장
       localStorage.setItem('token', access_token);
-      localStorage.setItem('token_type', token_type);
+      localStorage.setItem('token_type', token_type || 'bearer');
       
-      // 사용자 정보도 함께 저장 (선택적)
+      console.log('💾 토큰 저장 완료');
+
+      // 사용자 프로필 정보 가져오기
       try {
+        console.log('👤 사용자 프로필 가져오기 시도');
         const userResponse = await userAPI.getUserProfile();
-        localStorage.setItem('user', JSON.stringify({
-          id: userResponse.data.id || 1, // 백엔드에서 id를 제공하지 않는 경우 임시값
-          name: userResponse.data.nickname || userResponse.data.username,
-          email: credentials.email
-        }));
+        console.log('✅ 사용자 프로필 응답:', userResponse.data);
+        
+        const userData = {
+          id: userResponse.data.id || 1,
+          name: userResponse.data.username || credentials.email.split('@')[0],
+          email: userResponse.data.email || credentials.email,
+          username: userResponse.data.username
+        };
+        
+        localStorage.setItem('user', JSON.stringify(userData));
+        console.log('💾 사용자 정보 저장 완료:', userData);
+        
       } catch (profileError) {
+        console.warn('⚠️ 프로필 가져오기 실패, 기본 정보로 저장:', profileError);
+        
         // 프로필 가져오기 실패 시에도 기본 정보로 저장
-        localStorage.setItem('user', JSON.stringify({
+        const fallbackUserData = {
           id: 1,
-          name: credentials.email.split('@')[0], // 이메일의 @ 앞부분을 이름으로 사용
+          name: credentials.email.split('@')[0],
           email: credentials.email
-        }));
+        };
+        localStorage.setItem('user', JSON.stringify(fallbackUserData));
       }
 
-      console.log('토큰 저장 완료, 메인페이지로 이동');
+      console.log('🎉 로그인 완료, 메인페이지로 이동');
       
-      // replace: true로 뒤로가기 방지
-      navigate('/', { replace: true });
+      // 성공 메시지 표시 후 리다이렉트
+      setSuccessMessage('로그인 성공! 메인페이지로 이동합니다...');
+      
+      // 약간의 지연 후 리다이렉트 (사용자가 성공 메시지를 볼 수 있도록)
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 1000);
 
     } catch (error) {
-      console.error('로그인 실패:', error);
+      console.error('❌ 로그인 실패:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      
       let errorMessage = '로그인에 실패했습니다. 다시 시도해주세요.';
       
       if (error.response?.status === 401) {
         errorMessage = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      } else if (error.response?.status === 422) {
+        errorMessage = '입력 데이터 형식이 올바르지 않습니다.';
+      } else if (error.response?.status === 500) {
+        errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
       } else if (error.response?.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.message) {
@@ -102,6 +162,7 @@ const LoginPage = () => {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center px-4">
@@ -148,7 +209,7 @@ const LoginPage = () => {
               </Link>
             </div>
             <input
-              type="password" 
+              type="password"
               id="password"
               name="password"
               value={credentials.password}

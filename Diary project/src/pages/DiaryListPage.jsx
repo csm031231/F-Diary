@@ -11,6 +11,25 @@ const DiaryListPage = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const navigate = useNavigate();
 
+  // 감정 태그를 mood로 변환하는 함수
+  const emotionToMood = (emotion) => {
+    const emotionMap = {
+      'happy': 'happy',
+      'joy': 'happy',
+      'excited': 'excited',
+      'sad': 'sad',
+      'depressed': 'sad',
+      'angry': 'angry',
+      'frustrated': 'angry',
+      'relaxed': 'relaxed',
+      'calm': 'relaxed',
+      'focused': 'focused',
+      'concentrated': 'focused',
+      'neutral': 'neutral'
+    };
+    return emotionMap[emotion?.toLowerCase()] || 'neutral';
+  };
+
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -31,7 +50,18 @@ const DiaryListPage = () => {
     const fetchDiaries = async () => {
       try {
         const response = await diaryAPI.getAllEntries();
-        setEntries(response.data);
+        
+        // 백엔드 데이터를 프론트엔드 형식으로 변환
+        const transformedEntries = response.data.map(entry => ({
+          ...entry,
+          mood: emotionToMood(entry.emotion_tag || 'neutral'),
+          date: entry.created_at || entry.updated_at || entry.date,
+          // 백엔드에서 제공하는 empathy_response와 feedback 활용
+          aiResponse: entry.empathy_response,
+          feedback: entry.feedback
+        }));
+        
+        setEntries(transformedEntries);
       } catch (error) {
         console.error('Failed to fetch diary entries:', error);
         // 에러 처리, 예: 토큰 만료 시 로그아웃
@@ -60,18 +90,32 @@ const DiaryListPage = () => {
       const response = await diaryAPI.createEntry({
         title: entryData.title,
         content: entryData.content,
-        mood: entryData.mood,
-        date: entryData.date
+        intensity: entryData.intensity || "medium"
       });
       
+      // 백엔드 응답을 프론트엔드 형식으로 변환
+      const transformedEntry = {
+        ...response.data,
+        mood: emotionToMood(response.data.emotion_tag || 'neutral'),
+        date: response.data.created_at || response.data.date,
+        aiResponse: response.data.empathy_response,
+        feedback: response.data.feedback
+      };
+      
       // 성공적으로 추가된 경우, 일기 목록 업데이트
-      setEntries(prevEntries => [response.data, ...prevEntries]);
+      setEntries(prevEntries => [transformedEntry, ...prevEntries]);
       
       // 폼 닫기
       setShowNewEntryForm(false);
     } catch (error) {
       console.error('Failed to add diary entry:', error);
-      alert('일기 추가에 실패했습니다. 다시 시도해주세요.');
+      
+      // 오늘 이미 일기를 작성했다는 에러 처리
+      if (error.response && error.response.status === 400) {
+        alert(error.response.data.detail || '일기 추가에 실패했습니다.');
+      } else {
+        alert('일기 추가에 실패했습니다. 다시 시도해주세요.');
+      }
     }
   };
 
@@ -104,7 +148,6 @@ const DiaryListPage = () => {
     focused: '🧐',
     neutral: '😐'
   };
-
   // 감정별 색상
   const moodColors = {
     happy: 'bg-yellow-100',
@@ -125,7 +168,7 @@ const DiaryListPage = () => {
       </div>
     );
   }
- 
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* 손글씨 폰트 추가 */}

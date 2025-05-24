@@ -15,7 +15,7 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
     link.href = 'https://fonts.googleapis.com/css2?family=Gaegu&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
-  }, []); 
+  }, []);
 
   // content가 변경될 때마다 자동 감정 분석 (타이핑 지연 1초 후)
   useEffect(() => {

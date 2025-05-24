@@ -49,11 +49,16 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
   
   // 특정 날짜에 해당하는 일기 찾기
   const getEntryForDate = (date) => {
+    // entries가 배열인지 확인
+    if (!Array.isArray(entries)) {
+      return null;
+    }
+    
     const dateYear = date.getFullYear();
     const dateMonth = String(date.getMonth() + 1).padStart(2, '0');
     const dateDay = String(date.getDate()).padStart(2, '0');
     const dateString = `${dateYear}-${dateMonth}-${dateDay}`;
-    return entries.find(entry => entry.date === dateString);
+    return entries.find(entry => entry && entry.date === dateString);
   };
   
   // 오늘 날짜 - 날짜를 문자열로 변환하여 비교 (YYYY-MM-DD 형식)
@@ -80,9 +85,9 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       return x - Math.floor(x); // 0 ~ 1 사이 값
     };
     const jitter = () => (random() * 2 - 1) * waviness;
-  
+
     let path = `M ${x + jitter()} ${y + jitter()}`;
-  
+
     const topSegmentWidth = width / segments;
     for (let i = 1; i <= segments; i++) {
       const cpX1 = x + topSegmentWidth * (i - 0.7) + jitter();
@@ -93,7 +98,7 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       const endY = y + jitter();
       path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${endX} ${endY}`;
     }
-  
+
     const rightSegmentHeight = height / segments;
     for (let i = 1; i <= segments; i++) {
       const cpX1 = x + width + jitter() + waviness;
@@ -104,7 +109,7 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       const endY = y + rightSegmentHeight * i + jitter();
       path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${endX} ${endY}`;
     }
-  
+
     const bottomSegmentWidth = width / segments;
     for (let i = 1; i <= segments; i++) {
       const cpX1 = x + width - bottomSegmentWidth * (i - 0.7) + jitter();
@@ -115,7 +120,7 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       const endY = y + height + jitter();
       path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${endX} ${endY}`;
     }
-  
+
     const leftSegmentHeight = height / segments;
     for (let i = 1; i <= segments; i++) {
       const cpX1 = x + jitter() - waviness;
@@ -126,7 +131,7 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       const endY = y + height - leftSegmentHeight * i + jitter();
       path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${endX} ${endY}`;
     }
-  
+
     path += ' Z';
     return path;
   }
@@ -140,12 +145,12 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       mainSVG.setAttribute('width', '100%');
       mainSVG.setAttribute('height', '100%');
       mainSVG.setAttribute('style', 'position: absolute; top: 0; left: 0; pointer-events: none;');
-  
+
       // 📌 메인 테두리 경로 데이터 생성 (같은 시드로 두 개 생성)
       const mainPathSeed = 1234;
       const outerPath = generateWavyPath(6, 6, calendarRect.width-15, calendarRect.height-15, 8, 8, mainPathSeed);
       const innerPath = generateWavyPath(6, 6, calendarRect.width-15, calendarRect.height-15, 8, 8, mainPathSeed); // 같은 seed
-  
+
       // 배경 패스
       const bgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       bgPath.setAttribute('d', outerPath);
@@ -154,7 +159,7 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       bgPath.setAttribute('fill', 'none');
       bgPath.setAttribute('stroke-dasharray', '3 2');
       mainSVG.appendChild(bgPath);
-  
+
       // 메인 패스
       const mainPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       mainPath.setAttribute('d', innerPath);
@@ -162,13 +167,13 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
       mainPath.setAttribute('stroke-width', '2');
       mainPath.setAttribute('fill', 'none');
       mainSVG.appendChild(mainPath);
-  
+
       // 기존 SVG 제거 후 새로 추가
       const existingSVG = calendarRef.current.querySelector('.main-border');
       if (existingSVG) existingSVG.remove();
       mainSVG.classList.add('main-border');
       calendarRef.current.appendChild(mainSVG);
-  
+
       // 셀 테두리 생성
       cellRefs.current.forEach((cell, index) => {
         if (cell) {
@@ -177,7 +182,7 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
           cellSVG.setAttribute('width', '100%');
           cellSVG.setAttribute('height', '100%');
           cellSVG.setAttribute('style', 'position: absolute; top: 0; left: 0; pointer-events: none;');
-  
+
           // 셀 테두리
           const cellPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
           cellPath.setAttribute('d', generateWavyPath(1, 1, cellRect.width - 2, cellRect.height - 2, 2, 3, index)); // index로 시드 다르게
@@ -185,13 +190,13 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
           cellPath.setAttribute('stroke-width', '1');
           cellPath.setAttribute('fill', 'none');
           cellSVG.appendChild(cellPath);
-  
+
           // 기존 SVG 제거 후 새로 추가
           const existingCellSVG = cell.querySelector('.cell-border');
           if (existingCellSVG) existingCellSVG.remove();
           cellSVG.classList.add('cell-border');
           cell.appendChild(cellSVG);
-  
+
           // 오늘 날짜에 특별한 테두리 추가
           if (cell.classList.contains('today-cell')) {
             const todayCellPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -221,8 +226,8 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
             {day}
           </div>
         ))}
-         
-        {/* 달력 날짜 */} 
+        
+        {/* 달력 날짜 */}
         {calendarDays.map((dayObj, index) => {
           const { date, isCurrentMonth } = dayObj;
           const entry = getEntryForDate(date);
@@ -260,18 +265,24 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
                 )}
               </div>
               
-              {/* 일기 내용 미리보기 */}
+              {/* 일기 내용 미리보기 - 안전한 접근 */}
               {entry && (
                 <div className="mt-1">
-                  <div className="text-xs font-medium truncate">
-                    {entry.title}
-                  </div>
-                  <div className="text-xs text-gray-600 truncate">
-                    {entry.content.length > 20 
-                      ? `${entry.content.substring(0, 20)}...` 
-                      : entry.content
-                    }
-                  </div>
+                  {/* title 안전하게 표시 */}
+                  {entry.title && (
+                    <div className="text-xs font-medium truncate">
+                      {entry.title}
+                    </div>
+                  )}
+                  {/* content 안전하게 표시 */}
+                  {entry.content && (
+                    <div className="text-xs text-gray-600 truncate">
+                      {entry.content.length > 20 
+                        ? `${entry.content.substring(0, 20)}...` 
+                        : entry.content
+                      }
+                    </div>
+                  )}
                 </div>
               )}
             </div>

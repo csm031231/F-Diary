@@ -125,7 +125,7 @@ const DiaryListPage = () => {
       </div>
     );
   }
-
+ 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* 손글씨 폰트 추가 */}

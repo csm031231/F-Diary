@@ -221,8 +221,8 @@ const Calendar = ({ currentDate, entries, moodColors, moodEmojis }) => {
             {day}
           </div>
         ))}
-        
-        {/* 달력 날짜 */}
+         
+        {/* 달력 날짜 */} 
         {calendarDays.map((dayObj, index) => {
           const { date, isCurrentMonth } = dayObj;
           const entry = getEntryForDate(date);

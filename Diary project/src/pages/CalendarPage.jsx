@@ -13,7 +13,7 @@ const CalendarPage = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // 로그인 상태 확인
+  // 로그인 상태 확인 
   useEffect(() => {
     const checkLoginStatus = () => {
       const token = localStorage.getItem('token');

@@ -59,4 +59,4 @@ export const calendarAPI = {
   getCalendar: () => api.get('/'),
 };
 
-export default api;
+export default api; 

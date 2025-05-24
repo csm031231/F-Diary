@@ -148,7 +148,7 @@ const LoginPage = () => {
               </Link>
             </div>
             <input
-              type="password"
+              type="password" 
               id="password"
               name="password"
               value={credentials.password}

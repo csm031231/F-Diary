@@ -1,14 +1,14 @@
 services:
   frontend:
     build: 
-      context: ./Diary Project
+      context: ./back
     ports:
       - "80:5173"
     depends_on:
       - backend
 
   backend:
-    build: ./chatbot
+    build: ./front
     network_mode: "host"
     ports:
       - "8000:8000"

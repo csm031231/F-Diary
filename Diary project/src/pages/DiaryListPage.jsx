@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
 import NewEntryForm from './NewEntryForm';
 import { diaryAPI } from '../api/api';
 
@@ -10,6 +11,25 @@ const DiaryListPage = () => {
   const [showNewEntryForm, setShowNewEntryForm] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
   const navigate = useNavigate();
+
+  // 감정 태그를 mood로 변환하는 함수
+  const emotionToMood = (emotion) => {
+    const emotionMap = {
+      'happy': 'happy',
+      'joy': 'happy',
+      'excited': 'excited',
+      'sad': 'sad',
+      'depressed': 'sad',
+      'angry': 'angry',
+      'frustrated': 'angry',
+      'relaxed': 'relaxed',
+      'calm': 'relaxed',
+      'focused': 'focused',
+      'concentrated': 'focused',
+      'neutral': 'neutral'
+    };
+    return emotionMap[emotion?.toLowerCase()] || 'neutral';
+  };
 
   // 로그인한 사용자 정보 가져오기
   useEffect(() => {
@@ -31,7 +51,18 @@ const DiaryListPage = () => {
     const fetchDiaries = async () => {
       try {
         const response = await diaryAPI.getAllEntries();
-        setEntries(response.data);
+        
+        // 백엔드 데이터를 프론트엔드 형식으로 변환
+        const transformedEntries = response.data.map(entry => ({
+          ...entry,
+          mood: emotionToMood(entry.emotion_tag || 'neutral'),
+          date: entry.created_at || entry.updated_at || entry.date,
+          // 백엔드에서 제공하는 empathy_response와 feedback 활용
+          aiResponse: entry.empathy_response,
+          feedback: entry.feedback
+        }));
+        
+        setEntries(transformedEntries);
       } catch (error) {
         console.error('Failed to fetch diary entries:', error);
         // 에러 처리, 예: 토큰 만료 시 로그아웃
@@ -60,18 +91,32 @@ const DiaryListPage = () => {
       const response = await diaryAPI.createEntry({
         title: entryData.title,
         content: entryData.content,
-        mood: entryData.mood,
-        date: entryData.date
+        intensity: entryData.intensity || "medium"
       });
       
+      // 백엔드 응답을 프론트엔드 형식으로 변환
+      const transformedEntry = {
+        ...response.data,
+        mood: emotionToMood(response.data.emotion_tag || 'neutral'),
+        date: response.data.created_at || response.data.date,
+        aiResponse: response.data.empathy_response,
+        feedback: response.data.feedback
+      };
+      
       // 성공적으로 추가된 경우, 일기 목록 업데이트
-      setEntries(prevEntries => [response.data, ...prevEntries]);
+      setEntries(prevEntries => [transformedEntry, ...prevEntries]);
       
       // 폼 닫기
       setShowNewEntryForm(false);
     } catch (error) {
       console.error('Failed to add diary entry:', error);
-      alert('일기 추가에 실패했습니다. 다시 시도해주세요.');
+      
+      // 오늘 이미 일기를 작성했다는 에러 처리
+      if (error.response && error.response.status === 400) {
+        alert(error.response.data.detail || '일기 추가에 실패했습니다.');
+      } else {
+        alert('일기 추가에 실패했습니다. 다시 시도해주세요.');
+      }
     }
   };
 
@@ -104,7 +149,6 @@ const DiaryListPage = () => {
     focused: '🧐',
     neutral: '😐'
   };
-
   // 감정별 색상
   const moodColors = {
     happy: 'bg-yellow-100',
@@ -125,7 +169,7 @@ const DiaryListPage = () => {
       </div>
     );
   }
- 
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* 손글씨 폰트 추가 */}
@@ -133,33 +177,11 @@ const DiaryListPage = () => {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
       <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap" rel="stylesheet" />
 
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-indigo-900 font-gaegu">MyDiary</h1>
-          <nav className="flex gap-4">
-            <Link 
-              to="/" 
-              className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-            >
-              달력 보기
-            </Link>
-            <button 
-              onClick={() => setShowNewEntryForm(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              새 일기
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
-              로그아웃
-            </button>
-          </nav>
-        </div>
-      </header>
-
+      {/* Header 컴포넌트 사용 */}
+      <Header 
+        user={user} 
+        onNewEntry={() => setShowNewEntryForm(true)}
+      />
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
         <div className="mb-8">

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Calendar from '../components/Calendar';
+import Header from '../components/Header';
 import NewEntryForm from './NewEntryForm';
-import { diaryAPI } from '../api/api';
+import { diaryAPI, calendarAPI } from '../api/api';
 
 const CalendarPage = () => {
   const [entries, setEntries] = useState([]);
+  const [calendarData, setCalendarData] = useState([]); // 빈 배열로 초기화
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [showNewEntryForm, setShowNewEntryForm] = useState(false);
@@ -13,7 +15,26 @@ const CalendarPage = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
-  // 로그인 상태 확인 
+  // 감정 태그를 mood로 변환하는 함수
+  const emotionToMood = (emotion) => {
+    const emotionMap = {
+      'happy': 'happy',
+      'joy': 'happy',
+      'excited': 'excited',
+      'sad': 'sad',
+      'depressed': 'sad',
+      'angry': 'angry',
+      'frustrated': 'angry',
+      'relaxed': 'relaxed',
+      'calm': 'relaxed',
+      'focused': 'focused',
+      'concentrated': 'focused',
+      'neutral': 'neutral'
+    };
+    return emotionMap[emotion?.toLowerCase()] || 'neutral';
+  };
+
+  // 로그인 상태 확인
   useEffect(() => {
     const checkLoginStatus = () => {
       const token = localStorage.getItem('token');
@@ -32,25 +53,75 @@ const CalendarPage = () => {
     checkLoginStatus();
   }, [navigate]);
 
-  // 다이어리 엔트리 가져오기 (API 호출)
+  // 캘린더 데이터 가져오기
   useEffect(() => {
     if (!isLoggedIn) {
       setIsLoading(false);
       return;
     }
 
-    const fetchEntries = async () => {
+    const fetchCalendarData = async () => {
       try {
-        const response = await diaryAPI.getAllEntries();
-        setEntries(response.data);
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth() + 1;
+        
+        // 캘린더 API 호출
+        const response = await calendarAPI.getCalendar(year, month);
+        
+        // 응답 데이터가 배열인지 확인
+        const responseData = Array.isArray(response.data) ? response.data : [];
+        
+        // 백엔드에서 받은 데이터를 프론트엔드 형식으로 변환
+        const transformedData = responseData.map(item => ({
+          id: `${item.date}_${item.emotion_tag}`,
+          date: item.date,
+          mood: emotionToMood(item.emotion_tag),
+          emotion_tag: item.emotion_tag
+        }));
+        
+        setCalendarData(transformedData);
       } catch (error) {
-        console.error('Failed to fetch diary entries:', error);
-        // 에러 처리, 예: 토큰 만료 시 로그아웃
+        console.error('Failed to fetch calendar data:', error);
+        // 에러 발생 시에도 빈 배열로 설정
+        setCalendarData([]);
+        
         if (error.response && error.response.status === 401) {
           handleLogout();
         }
       } finally {
         setIsLoading(false);
+      }
+    };
+
+    fetchCalendarData();
+  }, [isLoggedIn, currentDate]);
+
+  // 다이어리 엔트리 가져오기 (통계용)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const fetchEntries = async () => {
+      try {
+        const response = await diaryAPI.getAllEntries();
+        
+        // 응답 데이터가 배열인지 확인
+        const responseData = Array.isArray(response.data) ? response.data : [];
+        
+        // 백엔드 데이터를 프론트엔드 형식으로 변환
+        const transformedEntries = responseData.map(entry => ({
+          ...entry,
+          mood: emotionToMood(entry.emotion_tag || 'neutral'),
+          date: entry.created_at || entry.date
+        }));
+        setEntries(transformedEntries);
+      } catch (error) {
+        console.error('Failed to fetch diary entries:', error);
+        // 에러 발생 시에도 빈 배열로 설정
+        setEntries([]);
+        
+        if (error.response && error.response.status === 401) {
+          handleLogout();
+        }
       }
     };
 
@@ -112,18 +183,45 @@ const CalendarPage = () => {
       const response = await diaryAPI.createEntry({
         title: entryData.title,
         content: entryData.content,
-        mood: entryData.mood,
-        date: entryData.date
+        intensity: entryData.intensity || "medium"
       });
       
-      // 성공적으로 추가된 경우, 일기 목록 업데이트
-      setEntries(prevEntries => [response.data, ...prevEntries]);
+      // 성공적으로 추가된 경우, 캘린더 데이터 새로고침
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+      const calendarResponse = await calendarAPI.getCalendar(year, month);
+      
+      const responseData = Array.isArray(calendarResponse.data) ? calendarResponse.data : [];
+      const transformedData = responseData.map(item => ({
+        id: `${item.date}_${item.emotion_tag}`,
+        date: item.date,
+        mood: emotionToMood(item.emotion_tag),
+        emotion_tag: item.emotion_tag
+      }));
+      
+      setCalendarData(transformedData);
+      
+      // 일기 목록도 새로고침
+      const entriesResponse = await diaryAPI.getAllEntries();
+      const entriesData = Array.isArray(entriesResponse.data) ? entriesResponse.data : [];
+      const transformedEntries = entriesData.map(entry => ({
+        ...entry,
+        mood: emotionToMood(entry.emotion_tag || 'neutral'),
+        date: entry.created_at || entry.date
+      }));
+      setEntries(transformedEntries);
       
       // 폼 닫기
       setShowNewEntryForm(false);
     } catch (error) {
       console.error('Failed to add diary entry:', error);
-      alert('일기 추가에 실패했습니다. 다시 시도해주세요.');
+      
+      // 오늘 이미 일기를 작성했다는 에러 처리
+      if (error.response && error.response.status === 400) {
+        alert(error.response.data.detail || '일기 추가에 실패했습니다.');
+      } else {
+        alert('일기 추가에 실패했습니다. 다시 시도해주세요.');
+      }
     }
   };
 
@@ -166,39 +264,18 @@ const CalendarPage = () => {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true" />
       <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@300;400;700&display=swap" rel="stylesheet" />
 
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-indigo-900 font-gaegu">MyDiary</h1>
-          <nav className="flex gap-4">
-            <Link 
-              to="/diary" 
-              className="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-            >
-              일기 목록
-            </Link>
-            <button 
-              onClick={() => setShowNewEntryForm(true)}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-            >
-              새 일기
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-            >
-              로그아웃
-            </button>
-          </nav>
-        </div>
-      </header>
+      {/* Header 컴포넌트 사용 */}
+      <Header 
+        user={user} 
+        onNewEntry={() => setShowNewEntryForm(true)}
+      />
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
         {/* 사용자 환영 메시지 */}
         <div className="mb-6">
           <h2 className="text-xl font-medium font-gaegu">
-            안녕하세요, {user?.name || '사용자'}님! 오늘의 감정을 기록해보세요.
+            안녕하세요, {user?.name || user?.username || '사용자'}님! 오늘의 감정을 기록해보세요.
           </h2>
         </div>
 
@@ -250,11 +327,11 @@ const CalendarPage = () => {
           </div>
         </div>
 
-        {/* 달력 컴포넌트 */}
+        {/* 달력 컴포넌트 - entries가 항상 배열임을 보장 */}
         <div className="custom-calendar-container">
           <Calendar 
             currentDate={currentDate} 
-            entries={entries} 
+            entries={calendarData || []} // null이나 undefined 방지
             moodColors={moodColors}
             moodEmojis={moodEmojis}
           />
@@ -265,7 +342,7 @@ const CalendarPage = () => {
           <h2 className="text-xl font-medium mb-4 font-gaegu">이번 달 감정 요약</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {Object.entries(moodEmojis).map(([mood, emoji]) => {
-              const count = entries.filter(entry => {
+              const count = (calendarData || []).filter(entry => {
                 const entryDate = new Date(entry.date);
                 return (
                   entry.mood === mood && 

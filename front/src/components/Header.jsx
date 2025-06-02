@@ -1,20 +1,46 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { User } from 'lucide-react';
 
 const Header = ({ user, showNewEntryButton = true, onNewEntry }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [userProfile, setUserProfile] = useState(null);
 
   // 현재 경로 확인
   const isCalendarPage = location.pathname === '/';
   const isDiaryListPage = location.pathname === '/diary';
 
-  // 로그아웃 처리
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
+  // 사용자 프로필 조회
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+      }
+    } catch (err) {
+      console.error('프로필 조회 실패:', err);
+    }
   };
+
+  // 프로필 클릭 핸들러
+  const handleProfileClick = () => {
+    navigate('/mypage');
+  };
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
 
   return (
     <>
@@ -31,7 +57,7 @@ const Header = ({ user, showNewEntryButton = true, onNewEntry }) => {
             </h1>
           </Link>
           
-          <nav className="flex gap-4">
+          <nav className="flex gap-4 items-center">
             {/* 캘린더 페이지에서는 일기 목록만 표시 */}
             {isCalendarPage && (
               <Link 
@@ -61,11 +87,25 @@ const Header = ({ user, showNewEntryButton = true, onNewEntry }) => {
               </button>
             )}
             
-            <button 
-              onClick={handleLogout}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+            {/* 프로필 버튼 */}
+            <button
+              onClick={handleProfileClick}
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              로그아웃
+              <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                {userProfile?.username ? (
+                  <span className="text-sm font-medium text-gray-800">
+                    {userProfile.username.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <User className="w-4 h-4 text-gray-600" />
+                )}
+              </div>
+              {userProfile?.username && (
+                <span className="text-sm font-medium text-gray-700 hidden sm:block">
+                  {userProfile.username}
+                </span>
+              )}
             </button>
           </nav>
         </div>

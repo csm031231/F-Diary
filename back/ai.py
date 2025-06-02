@@ -12,6 +12,16 @@ os.environ["SSL_CERT_FILE"] = certifi.where()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = FastAPI()
 
+class AnalyzeRequest(BaseModel):
+    content: str
+    intensity: str = "medium"
+
+@app.post("/api/analyzeEmotion")
+def analyze_emotion(request: AnalyzeRequest):
+    result = get_empathy_response(request.content, request.intensity)
+    return result
+
+# 밑에 원래 있던 함수들
 def generate_prompt(intensity: str = "medium") -> str:
     base = (
         "너는 사용자의 감정에 진심으로 공감해주는 친구야. 사용자의 이야기를 듣고 다음 JSON 형식으로만 응답해:\n"

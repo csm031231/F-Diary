@@ -4,6 +4,8 @@ import CalendarPage from './pages/CalendarPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DiaryListPage from './pages/DiaryListPage';
+import MyPage from './pages/MyPage';
+import DiaryDetailPage from './pages/DiaryDetailPage'; 
 
 // 로그인이 필요한 라우트를 위한 ProtectedRoute 컴포넌트
 const ProtectedRoute = ({ children }) => {
@@ -67,7 +69,21 @@ function App() {
         {/* 로그인과 회원가입 페이지 */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
+        {/* 새로 추가된 마이페이지 라우트 */}
+        <Route path="/mypage" element={
+          <ProtectedRoute>
+            <MyPage />
+          </ProtectedRoute>
+        } />
         
+        {/* 새로 추가하는 일기 상세 페이지 라우트 */}
+        <Route path="/diary/:id" element={
+          <ProtectedRoute>
+            <DiaryDetailPage />
+          </ProtectedRoute>
+        } />
+
         {/* 404 페이지 - 모든 다른 경로를 메인으로 리디렉션 */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

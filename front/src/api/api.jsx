@@ -12,21 +12,46 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    console.log('🔍 API 요청 인터셉터:', {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token
+    });
+    
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('🔑 토큰 헤더 추가됨');
+    } else {
+      console.log('❌ 토큰이 없음');
     }
     return config;
   },
   (error) => {
+    console.error('❌ 요청 인터셉터 에러:', error);
     return Promise.reject(error);
   }
 );
 
 // Add response interceptor to handle auth errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ API 응답 성공:', {
+      url: response.config.url,
+      status: response.status,
+      data: response.data
+    });
+    return response;
+  },
   (error) => {
+    console.error('❌ API 응답 에러:', {
+      url: error.config?.url,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data
+    });
+    
     if (error.response?.status === 401) {
+      console.log('🔓 인증 에러 감지, 토큰 제거');
       // 토큰이 만료되거나 유효하지 않은 경우
       localStorage.removeItem('token');
       localStorage.removeItem('token_type');
@@ -34,6 +59,7 @@ api.interceptors.response.use(
       
       // 로그인 페이지로 리다이렉트 (현재 페이지가 로그인 페이지가 아닌 경우)
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        console.log('🔄 로그인 페이지로 리다이렉트');
         window.location.href = '/login';
       }
     }
@@ -102,11 +128,20 @@ export const userAPI = {
     return api.post('/user/', userData);
   },
   
-  deleteUser: () => api.delete('/user/delete'),
+  deleteUser: () => {
+    console.log('🗑️ 계정 삭제 API 호출');
+    return api.delete('/user/delete');
+  },
   
-  updateUser: (userData) => api.put('/user/update', userData),
+  updateUser: (userData) => {
+    console.log('💾 사용자 정보 업데이트 API 호출:', userData);
+    return api.put('/user/update', userData);
+  },
   
-  getUserProfile: () => api.get('/user/profile'),
+  getUserProfile: () => {
+    console.log('👤 사용자 프로필 조회 API 호출');
+    return api.get('/user/profile');
+  },
 
   // ✅ 로그인 - OAuth2PasswordRequestForm 사용에 맞춰 FormData로 전송
   login: (credentials) => {
@@ -143,6 +178,7 @@ export const userAPI = {
 
   // 로그아웃 함수 추가
   logout: () => {
+    console.log('🔓 로그아웃 처리');
     localStorage.removeItem('token');
     localStorage.removeItem('token_type');
     localStorage.removeItem('user');

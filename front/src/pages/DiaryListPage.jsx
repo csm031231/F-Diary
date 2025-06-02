@@ -278,11 +278,7 @@ const DiaryListPage = () => {
                   </button>
                   <button
                     className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                    onClick={() => {
-                      // 일기 상세 보기 구현 (아직 구현되지 않음)
-                      // navigate(`/diary/${entry.id}`);
-                      alert('일기 상세 보기 기능은 아직 구현되지 않았습니다.');
-                    }}
+                    onClick={() => navigate(`/diary/${entry.id}`)}
                   >
                     전체 보기
                   </button>

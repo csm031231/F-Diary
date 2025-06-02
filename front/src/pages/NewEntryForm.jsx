@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { diaryAPI } from '../api/api';
+
 const NotebookEntryForm = ({ onSave, onCancel, user }) => {
   const [newEntry, setNewEntry] = useState({
     title: '',
     content: '',
-    mood: 'neutral'
+    mood: 'neutral',
   });
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [autoAnalyze, setAutoAnalyze] = useState(true); // 자동 분석 설정
 
-  // Google Font 로드
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [autoAnalyze, setAutoAnalyze] = useState(true);
+  const [angerLevel, setAngerLevel] = useState('medium'); // 욕 강도 조절 상태
+
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Gaegu&display=swap';
@@ -17,16 +19,15 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
     document.head.appendChild(link);
   }, []);
 
-  // content가 변경될 때마다 자동 감정 분석 (타이핑 지연 1초 후)
   useEffect(() => {
-    if (!autoAnalyze || newEntry.content.length < 20) return; // 최소 20자 이상일 때만 분석
-    
+    if (!autoAnalyze || newEntry.content.length < 20) return;
+
     const timer = setTimeout(() => {
       analyzeEmotion();
     }, 1000);
-    
+
     return () => clearTimeout(timer);
-  }, [newEntry.content, autoAnalyze]);
+  }, [newEntry.content, autoAnalyze, angerLevel]);
 
   const moodEmojis = {
     happy: '😊',
@@ -35,26 +36,22 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
     excited: '🎉',
     relaxed: '😌',
     focused: '🧐',
-    neutral: '😐'
+    neutral: '😐',
   };
 
-  // AI 감정 분석 함수
   const analyzeEmotion = async () => {
     if (!newEntry.content.trim() || isAnalyzing) return;
-    
+
     setIsAnalyzing(true);
     try {
-      // API 호출하여 감정 분석
-      const response = await diaryAPI.analyzeEmotion(newEntry.content);
-      
-      // 분석된 감정으로 상태 업데이트
-      setNewEntry(prev => ({
+      const response = await diaryAPI.analyzeEmotion(newEntry.content, angerLevel);
+
+      setNewEntry((prev) => ({
         ...prev,
-        mood: response.data.emotion
+        mood: response.data.emotion,
       }));
     } catch (error) {
       console.error('감정 분석 실패:', error);
-      // 오류 발생 시 처리 (선택적)
     } finally {
       setIsAnalyzing(false);
     }
@@ -67,11 +64,10 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
-    // API 호출은 상위 컴포넌트(CalendarPage 또는 DiaryListPage)에서 처리
     onSave({
       ...newEntry,
       date: today,
-      userId: user.id
+      userId: user.id,
     });
 
     setNewEntry({ title: '', content: '', mood: 'neutral' });
@@ -97,7 +93,7 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
           overflow: 'hidden',
         }}
       >
-        {/* 감정 선택 - 오른쪽 상단 */}
+        {/* 감정 선택 및 분석 */}
         <div className="absolute top-4 right-4 flex flex-col items-end">
           <div className="flex gap-2 mb-2">
             {Object.entries(moodEmojis).map(([mood, emoji]) => (
@@ -113,8 +109,8 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
               </button>
             ))}
           </div>
-          
-          {/* AI 감정 분석 버튼 */}
+
+          {/* 감정 분석 및 욕 강도 */}
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-600 flex items-center">
               <input
@@ -125,7 +121,7 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
               />
               자동 감정 분석
             </label>
-            
+
             <button
               onClick={analyzeEmotion}
               disabled={isAnalyzing || !newEntry.content.trim()}
@@ -134,21 +130,43 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
               {isAnalyzing ? '분석 중...' : 'AI 감정 분석'}
             </button>
           </div>
+
+          <div className="mt-2 text-xs text-gray-600">
+            욕 강도:
+            <select
+              value={angerLevel}
+              onChange={(e) => setAngerLevel(e.target.value)}
+              className="ml-2 border rounded px-1 py-0.5"
+            >
+              <option value="soft">Soft</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
         </div>
 
-        {/* 닫기 버튼 - 왼쪽 상단 */}
+        {/* 닫기 버튼 */}
         <button
           onClick={onCancel}
           className="absolute top-4 left-4 text-gray-500 hover:text-gray-700"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none"
-               viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
 
-        {/* 일기 입력 영역 */}
+        {/* 입력 영역 */}
         <form onSubmit={handleSubmit} className="h-full flex flex-col gap-6">
           <input
             type="text"
@@ -173,7 +191,6 @@ const NotebookEntryForm = ({ onSave, onCancel, user }) => {
             }}
           ></textarea>
 
-          {/* 저장/취소 버튼 */}
           <div className="flex justify-end gap-4">
             <button
               type="button"
